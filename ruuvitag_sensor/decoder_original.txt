@@ -3,7 +3,6 @@ from __future__ import division
 import base64
 import math
 import logging
-from Crypto.Cipher import AES
 
 log = logging.getLogger(__name__)
 
@@ -21,12 +20,6 @@ def get_decoder(data_type):
         return UrlDecoder()
     elif data_type == 3:
         return Df3Decoder()
-    elif data_type == 7:
-        return Df7Decoder()
-    elif data_type == 8:
-        return Df8Decoder()
-    elif data_type == 9:
-        return Df9Decoder()
     else:
         return Df5Decoder()
 
@@ -150,7 +143,6 @@ class Df3Decoder(object):
         Returns:
             dict: Sensor values
         '''
-        
         try:
             byte_data = bytearray.fromhex(data)
             acc_x, acc_y, acc_z = self._get_acceleration(byte_data)
@@ -168,225 +160,6 @@ class Df3Decoder(object):
         except Exception:
             log.exception('Value: %s not valid', data)
             return None
-
-class Df7Decoder(object):
-    '''
-    Decodes data from RuuviTag with Data Format 7
-    Very similar to data format 3 but with AES 128 ECB encryption
-    '''
-
-    def _get_temperature(self, data):
-        '''Return temperature in celsius'''
-        temp = (data[2] & ~(1 << 7)) + (data[3] / 100)
-        sign = (data[2] >> 7) & 1
-        if sign == 0:
-            return round(temp, 2)
-        return round(-1 * temp, 2)
-
-    def _get_humidity(self, data):
-        '''Return humidity %'''
-        return data[1] * 0.5
-
-    def _get_pressure(self, data):
-        '''Return air pressure hPa'''
-        pres = (data[4] << 8) + data[5] + 50000
-        return pres / 100
-
-    def _get_acceleration(self, data):
-        '''Return acceleration mG'''
-        acc_x = twos_complement((data[6] << 8) + data[7], 16)
-        acc_y = twos_complement((data[8] << 8) + data[9], 16)
-        acc_z = twos_complement((data[10] << 8) + data[11], 16)
-        return (acc_x, acc_y, acc_z)
-
-    def _get_battery(self, data):
-        '''Return battery mV'''
-        return (data[12] << 8) + data[13]
-
-    def _get_sensor(self, data):
-        '''Return battery mV'''
-        return (data[14] << 8) + data[15]
-
-    def decode_data(self, data):
-        '''
-        TODO: Add AES Decryption then we can pass the data into the same code as
-        Decode sensor data.
-
-        Returns:
-            dict: Sensor values
-        '''
-
-        
-        encrypted_data = bytes.fromhex(data)
-        key = '\x80\xe6\xb3\x6d\x97\x75\xb1\x5c\x7e\x3c\xc2\xc0\x7c\x99\x20\xf6'
-        encrypted = encrypted_data[1:17]
-        decipher = AES.new(b'\x80\xe6\xb3\x6d\x97\x75\xb1\x5c\x7e\x3c\xc2\xc0\x7c\x99\x20\xf6', AES.MODE_ECB)
-        decrypted = b'\x07'+ decipher.decrypt(encrypted)
-        # print(data)
-        # print(encrypted)
-        # print(decrypted)
-        try:
-            byte_data = decrypted
-            acc_x, acc_y, acc_z = self._get_acceleration(byte_data)
-            return {
-                'data_format': 7,
-                'humidity': self._get_humidity(byte_data),
-                'temperature': self._get_temperature(byte_data),
-                'pressure': self._get_pressure(byte_data),
-                'acceleration': math.sqrt(acc_x * acc_x + acc_y * acc_y + acc_z * acc_z),
-                'acceleration_x': acc_x,
-                'acceleration_y': acc_y,
-                'acceleration_z': acc_z,
-                'battery': self._get_battery(byte_data),
-                'sensor': self._get_sensor(byte_data)
-            }
-        except Exception:
-            log.exception('Value: %s not valid', data)
-            return None
-
-
-class Df8Decoder(object):
-    '''
-    Decodes data from RuuviTag with Data Format 8
-    Very similar to data format 3 but with AES 128 ECB encryption
-    Code duplicated from format 7 
-    '''
-    def _get_temperature(self, data):
-        '''Return temperature in celsius'''
-        temp = (data[2] & ~(1 << 7)) + (data[3] / 100)
-        sign = (data[2] >> 7) & 1
-        if sign == 0:
-            return round(temp, 2)
-        return round(-1 * temp, 2)
-
-    def _get_humidity(self, data):
-        '''Return humidity %'''
-        return data[1] * 0.5
-
-    def _get_pressure(self, data):
-        '''Return air pressure hPa'''
-        pres = (data[4] << 8) + data[5] + 50000
-        return pres / 100
-
-    def _get_acceleration(self, data):
-        '''Return acceleration mG'''
-        acc_x = twos_complement((data[6] << 8) + data[7], 16)
-        acc_y = twos_complement((data[8] << 8) + data[9], 16)
-        acc_z = twos_complement((data[10] << 8) + data[11], 16)
-        return (acc_x, acc_y, acc_z)
-
-    def _get_rssi_1(self, data):
-        '''Return battery mV'''
-        return (data[12] << 8) + data[13]
-
-    def _get_rssi_2(self, data):
-        '''Return battery mV'''
-        return (data[14] << 8) + data[15]
-
-    def decode_data(self, data):
-        '''
-        TODO: Add AES Decryption then we can pass the data into the same code as
-        Decode sensor data.
-
-        Returns:
-            dict: Sensor values
-        '''
-
-        
-        encrypted_data = bytes.fromhex(data)
-        key = '\x80\xe6\xb3\x6d\x97\x75\xb1\x5c\x7e\x3c\xc2\xc0\x7c\x99\x20\xf6'
-        encrypted = encrypted_data[1:17]
-        decipher = AES.new(b'\x80\xe6\xb3\x6d\x97\x75\xb1\x5c\x7e\x3c\xc2\xc0\x7c\x99\x20\xf6', AES.MODE_ECB)
-        decrypted = b'\x07'+ decipher.decrypt(encrypted)
-
-        try:
-            byte_data = decrypted
-            acc_x, acc_y, acc_z = self._get_acceleration(byte_data)
-            return {
-                'data_format': 7,
-                'humidity': self._get_humidity(byte_data),
-                'temperature': self._get_temperature(byte_data),
-                'pressure': self._get_pressure(byte_data),
-                'acceleration': math.sqrt(acc_x * acc_x + acc_y * acc_y + acc_z * acc_z),
-                'acceleration_x': acc_x,
-                'acceleration_y': acc_y,
-                'acceleration_z': acc_z,
-                'rssi_1': self._get_rssi_1(byte_data),
-                'rssi_2': self._get_rssi_2(byte_data)
-            }
-        except Exception:
-            log.exception('Value: %s not valid', data)
-            return None
-class Df9Decoder(object):
-    '''
-    Decodes data from RuuviTag with Data Format 8
-    Very similar to data format 3 but with AES 128 ECB encryption
-    Code duplicated from format 7 
-    '''
-    def _get_temperature(self, data):
-        '''Return temperature in celsius'''
-        temp = (data[2] & ~(1 << 7)) + (data[3] / 100)
-        sign = (data[2] >> 7) & 1
-        if sign == 0:
-            return round(temp, 2)
-        return round(-1 * temp, 2)
-
-    def _get_humidity(self, data):
-        '''Return humidity %'''
-        return data[1] * 0.5
-
-    def _get_pressure(self, data):
-        '''Return air pressure hPa'''
-        pres = (data[4] << 8) + data[5] + 50000
-        return pres / 100
-
-    def _get_acceleration(self, data):
-        '''Return acceleration mG'''
-        acc_x = twos_complement((data[6] << 8) + data[7], 16)
-        acc_y = twos_complement((data[8] << 8) + data[9], 16)
-        acc_z = twos_complement((data[10] << 8) + data[11], 16)
-        return (acc_x, acc_y, acc_z)
-
-    def _get_battery(self, data):
-        '''Return battery mV'''
-        return (data[12] << 8) + data[13]
-
-
-    def _get_rssi_1(self, data):
-        '''Return battery mV'''
-        return (data[14] << 8) + data[15]
-
-    def _get_rssi_2(self, data):
-        '''Return battery mV'''
-        return (data[16] << 8) + data[17]
-        
-    def decode_data(self, data):
-        encrypted_data = bytes.fromhex(data)
-        key = '\x80\xe6\xb3\x6d\x97\x75\xb1\x5c\x7e\x3c\xc2\xc0\x7c\x99\x20\xf6'
-        encrypted = encrypted_data[1:17]
-        decipher = AES.new(b'\x80\xe6\xb3\x6d\x97\x75\xb1\x5c\x7e\x3c\xc2\xc0\x7c\x99\x20\xf6', AES.MODE_ECB)
-        decrypted = b'\x07'+ decipher.decrypt(encrypted) + bytes(encrypted_data[17])
-
-        try:
-            byte_data = decrypted
-            acc_x, acc_y, acc_z = self._get_acceleration(byte_data)
-            return {
-                'data_format': 9,
-                'humidity': self._get_humidity(byte_data),
-                'temperature': self._get_temperature(byte_data),
-                'pressure': self._get_pressure(byte_data),
-                'acceleration': math.sqrt(acc_x * acc_x + acc_y * acc_y + acc_z * acc_z),
-                'acceleration_x': acc_x,
-                'acceleration_y': acc_y,
-                'acceleration_z': acc_z,
-                'battery': self._get_battery(byte_data),
-                'rssi_1': self._get_rssi_1(byte_data),
-                'rssi_2': self._get_rssi_2(byte_data)
-            }
-        except Exception:
-            log.exception('Value: %s not valid', data)
-            return None
-
 
 class Df5Decoder(object):
     '''
