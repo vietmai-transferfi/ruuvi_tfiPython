@@ -352,11 +352,11 @@ class Df9Decoder(object):
         return (data[12] << 8) + data[13]
 
 
-    def _get_rssi_1(self, data):
+    def _get_vcap(self, data):
         '''Return battery mV'''
         return (data[14] << 8) + data[15]
 
-    def _get_rssi_2(self, data):
+    def _get_prssi(self, data):
         '''Return battery mV'''
         return (data[16] << 8) + data[17]
         
@@ -380,8 +380,8 @@ class Df9Decoder(object):
                 'acceleration_y': acc_y,
                 'acceleration_z': acc_z,
                 'battery': self._get_battery(byte_data),
-                'rssi_1': self._get_rssi_1(byte_data),
-                'rssi_2': self._get_rssi_2(byte_data)
+                'v_cap': self._get_vcap(byte_data),
+                'p_rssi': self._get_prssi(byte_data)
             }
         except Exception:
             log.exception('Value: %s not valid', data)
