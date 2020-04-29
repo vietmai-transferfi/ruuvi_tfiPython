@@ -368,7 +368,7 @@ class Df9Decoder(object):
         decrypted = b'\x07'+ decipher.decrypt(encrypted) + bytes(encrypted_data[17])
 
         try:
-            byte_data = decrypted
+            byte_data = bytes.fromhex(data)#decrypted
             acc_x, acc_y, acc_z = self._get_acceleration(byte_data)
             return {
                 'data_format': 9,
