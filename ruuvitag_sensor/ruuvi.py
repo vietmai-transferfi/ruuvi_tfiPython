@@ -293,12 +293,12 @@ class RuuviTagSensor(object):
         Returns:
             string: Sensor data
         """
-        # Search of FF990408 (Manufacturer Specific Data (FF) / Ruuvi Innovations ltd (9904) / Format 8 (08))
+        
         try:
-            if "FF990409" not in raw:
+            if "FFB50809" not in raw:
                 return None
 
-            payload_start = raw.index("FF990409") + 6
+            payload_start = raw.index("FFB50809") + 6
             return raw[payload_start:]
         except:
             return None
